@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zuxuru Investigation Platform</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #333; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; text-align: center; }
+        .header h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+        .header p { opacity: 0.9; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .status-bar { background: white; border-radius: 8px; padding: 1rem; margin-bottom: 2rem; display: flex; gap: 2rem; align-items: center; }
+        .status-item { display: flex; align-items: center; gap: 0.5rem; }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .status-dot.connected { background: #10b981; }
+        .status-dot.disconnected { background: #ef4444; }
+        .search-section { background: white; border-radius: 8px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .search-form { display: flex; gap: 1rem; flex-wrap: wrap; }
+        .search-input { flex: 1; min-width: 300px; padding: 0.75rem 1rem; border: 2px solid #e2e8f0; border-radius: 6px; font-size: 1rem; }
+        .search-input:focus { outline: none; border-color: #667eea; }
+        .btn { padding: 0.75rem 1.5rem; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-primary:hover { background: #5a67d8; }
+        .btn-primary:disabled { background: #cbd5e0; cursor: not-allowed; }
+        .results-section { display: none; }
+        .results-section.active { display: block; }
+        .candidates-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem; margin-top: 1.5rem; }
+        .candidate-card { background: white; border-radius: 8px; padding: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .candidate-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem; }
+        .candidate-name { font-size: 1.25rem; font-weight: 600; color: #2d3748; }
+        .confidence-badge { padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.875rem; font-weight: 500; }
+        .confidence-high { background: #c6f6d5; color: #22543d; }
+        .confidence-medium { background: #feebc8; color: #744210; }
+        .confidence-low { background: #fed7d7; color: #822722; }
+        .evidence-section { margin-top: 1rem; }
+        .evidence-title { font-size: 0.875rem; font-weight: 600; color: #718096; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .evidence-card { background: #f7fafc; border-left: 4px solid #667eea; padding: 1rem; margin-bottom: 0.75rem; border-radius: 0 6px 6px 0; }
+        .evidence-card.website { border-left-color: #4299e1; }
+        .evidence-card.contact { border-left-color: #48bb78; }
+        .evidence-card-type { font-size: 0.75rem; color: #718096; text-transform: uppercase; margin-bottom: 0.5rem; }
+        .evidence-card-title { font-weight: 600; color: #2d3748; margin-bottom: 0.5rem; }
+        .evidence-card-content { font-size: 0.875rem; color: #4a5568; line-height: 1.5; }
+        .evidence-card-source { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #e2e8f0; font-size: 0.75rem; color: #718096; }
+        .evidence-card-source a { color: #667eea; text-decoration: none; }
+        .evidence-card-source a:hover { text-decoration: underline; }
+        .why-here { margin-top: 0.5rem; font-size: 0.75rem; color: #a0aec0; font-style: italic; }
+        .loading { text-align: center; padding: 3rem; display: none; }
+        .loading.active { display: block; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 1rem; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .error-message { background: #fed7d7; color: #822722; padding: 1rem; border-radius: 6px; margin-top: 1rem; display: none; }
+        .error-message.active { display: block; }
+        .feature-list { background: white; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem; }
+        .feature-list h3 { margin-bottom: 1rem; color: #2d3748; }
+        .feature-list ul { list-style: none; }
+        .feature-list li { padding: 0.5rem 0; color: #4a5568; }
+        .feature-list li:before { content: "✓ "; color: #48bb78; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔍 Zuxuru Investigation Platform</h1>
+        <p>Real business discovery with DataForSEO connector</p>
+    </div>
+
+    <div class="container">
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-dot" id="db-status"></div>
+                <span>Database: <strong id="db-text">Checking...</strong></span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot" id="connector-status"></div>
+                <span>DataForSEO: <strong id="connector-text">Checking...</strong></span>
+            </div>
+            <div class="status-item">
+                <span>Version: <strong>1.0.0</strong></span>
+            </div>
+        </div>
+
+        <div class="feature-list">
+            <h3>Platform Features</h3>
+            <ul>
+                <li>Real DataForSEO connector for Google Local & Organic search</li>
+                <li>Up to 5 candidate businesses per investigation</li>
+                <li>Business confirmation and website fetching</li>
+                <li>Website title, description, and headings extraction</li>
+                <li>Public contact discovery from websites</li>
+                <li>Evidence cards with source links and confidence labels</li>
+                <li>"Why did Zuxuru look here?" explanations</li>
+                <li>Multi-tenant workspace architecture (Supabase-ready)</li>
+            </ul>
+        </div>
+
+        <div class="search-section">
+            <h2 style="margin-bottom: 1rem; color: #2d3748;">Start New Investigation</h2>
+            <form class="search-form" id="investigation-form">
+                <input type="text" class="search-input" id="query" placeholder="Enter business name or keywords..." required>
+                <input type="text" class="search-input" id="location" placeholder="Location (e.g., United States)" value="United States" style="min-width: 200px;">
+                <button type="submit" class="btn btn-primary" id="search-btn">🔍 Investigate</button>
+            </form>
+            <div class="error-message" id="error-message"></div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Investigating... This may take up to 30 seconds</p>
+            <p style="color: #a0aec0; font-size: 0.875rem; margin-top: 0.5rem;">Searching Google Local & Organic results, fetching websites, extracting data...</p>
+        </div>
+
+        <div class="results-section" id="results-section">
+            <h2 style="margin-bottom: 1rem; color: #2d3748;">Investigation Results</h2>
+            <p style="color: #718096; margin-bottom: 1rem;">Found <strong id="candidate-count">0</strong> candidate businesses</p>
+            <div class="candidates-grid" id="candidates-grid"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentJobId = null;
+        let pollInterval = null;
+
+        // Check health on load
+        async function checkHealth() {
+            try {
+                const response = await fetch('/health');
+                const health = await response.json();
+                
+                const dbStatus = document.getElementById('db-status');
+                const dbText = document.getElementById('db-text');
+                const connectorStatus = document.getElementById('connector-status');
+                const connectorText = document.getElementById('connector-text');
+                
+                if (health.database_connected) {
+                    dbStatus.className = 'status-dot connected';
+                    dbText.textContent = 'Connected';
+                } else {
+                    dbStatus.className = 'status-dot disconnected';
+                    dbText.textContent = 'Disconnected';
+                }
+                
+                if (health.dataforseo_connected) {
+                    connectorStatus.className = 'status-dot connected';
+                    connectorText.textContent = 'Connected';
+                } else {
+                    connectorStatus.className = 'status-dot disconnected';
+                    connectorText.textContent = 'Not Connected (Configure credentials)';
+                }
+            } catch (error) {
+                console.error('Health check failed:', error);
+            }
+        }
+
+        // Start investigation
+        document.getElementById('investigation-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const query = document.getElementById('query').value;
+            const location = document.getElementById('location').value || 'United States';
+            const searchBtn = document.getElementById('search-btn');
+            const errorMessage = document.getElementById('error-message');
+            const loading = document.getElementById('loading');
+            const resultsSection = document.getElementById('results-section');
+            
+            searchBtn.disabled = true;
+            errorMessage.classList.remove('active');
+            resultsSection.classList.remove('active');
+            loading.classList.add('active');
+            
+            try {
+                const response = await fetch('/investigate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query, location })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to start investigation');
+                }
+                
+                const result = await response.json();
+                currentJobId = result.job_id;
+                
+                // Start polling for results
+                pollInterval = setInterval(pollResults, 2000);
+                
+            } catch (error) {
+                loading.classList.remove('active');
+                searchBtn.disabled = false;
+                errorMessage.textContent = error.message;
+                errorMessage.classList.add('active');
+            }
+        });
+
+        // Poll for results
+        async function pollResults() {
+            if (!currentJobId) return;
+            
+            try {
+                const response = await fetch(`/investigation/${currentJobId}`);
+                const status = await response.json();
+                
+                if (status.status === 'completed') {
+                    clearInterval(pollInterval);
+                    displayResults(status);
+                    document.getElementById('loading').classList.remove('active');
+                    document.getElementById('search-btn').disabled = false;
+                } else if (status.status === 'failed') {
+                    clearInterval(pollInterval);
+                    document.getElementById('loading').classList.remove('active');
+                    document.getElementById('search-btn').disabled = false;
+                    const errorMessage = document.getElementById('error-message');
+                    errorMessage.textContent = 'Investigation failed: ' + (status.error || 'Unknown error');
+                    errorMessage.classList.add('active');
+                }
+            } catch (error) {
+                console.error('Polling error:', error);
+            }
+        }
+
+        // Display results
+        function displayResults(status) {
+            const resultsSection = document.getElementById('results-section');
+            const candidatesGrid = document.getElementById('candidates-grid');
+            const candidateCount = document.getElementById('candidate-count');
+            
+            candidateCount.textContent = status.candidate_count;
+            
+            if (!status.evidence || status.evidence.length === 0) {
+                candidatesGrid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #718096;">No evidence found. Make sure DataForSEO credentials are configured.</p>';
+            } else {
+                // Group evidence by business
+                const businesses = {};
+                status.evidence.forEach(ev => {
+                    if (!businesses[ev.title]) {
+                        businesses[ev.title] = {
+                            name: ev.title,
+                            confidence: ev.confidence_label,
+                            evidence: []
+                        };
+                    }
+                    businesses[ev.title].evidence.push(ev);
+                });
+                
+                candidatesGrid.innerHTML = Object.values(businesses).map(biz => `
+                    <div class="candidate-card">
+                        <div class="candidate-header">
+                            <div class="candidate-name">${biz.name}</div>
+                            <span class="confidence-badge confidence-${biz.confidence}">${biz.confidence}</span>
+                        </div>
+                        <div class="evidence-section">
+                            <div class="evidence-title">Evidence Cards</div>
+                            ${biz.evidence.map(ev => `
+                                <div class="evidence-card ${ev.card_type}">
+                                    <div class="evidence-card-type">${ev.card_type.replace('_', ' ')}</div>
+                                    <div class="evidence-card-title">${ev.title}</div>
+                                    <div class="evidence-card-content">${ev.content}</div>
+                                    <div class="why-here">💡 ${ev.why_here}</div>
+                                    <div class="evidence-card-source">
+                                        Source: <a href="${ev.source_link}" target="_blank" rel="noopener">${ev.source_url}</a>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            resultsSection.classList.add('active');
+        }
+
+        // Initialize
+        checkHealth();
+    </script>
+</body>
+</html>
