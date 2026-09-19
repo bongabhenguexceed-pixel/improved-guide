@@ -1,5 +1,13 @@
 ```
-# Python
+# Database file
+zuxuru.db
+
+# Environment variables
+.env
+.env.local
+*.env.*
+
+# Python specific
 __pycache__/
 *.pyc
 *.pyo
@@ -8,40 +16,30 @@ __pycache__/
 env/
 venv/
 .venv/
-.venv.bak/
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
+.ENV
+.python-version
+
+# Logs
 *.log
-*.sqlite3
-*.db
 
-# Dependencies
-node_modules/
-
-# Editors
+# IDE and editor files
 .vscode/
 .idea/
 *.swp
 *.swo
+*.tmp
 
-# Environment
-.env
-.env.local
-*.env.*
+# OS generated files
+.DS_Store
+Thumbs.db
 
-# Build artifacts
+# Coverage reports
+.coverage
+htmlcov/
+coverage/
+
+# Build and distribution artifacts
 dist/
 build/
 *.egg-info/
-
-# OS
-.DS_Store
-Thumbs.db
 ```
